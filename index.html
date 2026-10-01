@@ -1,0 +1,2341 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Untitled — Notepad</title>
+
+<!--
+  Courier Prime is a true monospaced typewriter-style font.
+  The font downloads on first use; Courier New is the offline fallback.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  color-scheme: light;
+
+  --paper: #f1f2ef;
+  --header: #e9ece7;
+  --toolbar: #edf0eb;
+  --gutter: #eceee9;
+  --surface: #f3f5f0;
+  --ink: #303630;
+  --muted: #6e786c;
+  --numbers: #87917f;
+  --border: #d8ddd3;
+  --hover: #e0e6da;
+  --accent: #526647;
+  --accent-text: #f7faf3;
+  --selection: #d5e0c9;
+  --shadow: 0 12px 35px #26351c16;
+
+  --editor-size: 20px;
+  --editor-line: 34px;
+  --padding-top: 25px;
+  --padding-side: 25px;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #20231f;
+  --header: #242821;
+  --toolbar: #232620;
+  --gutter: #20241e;
+  --surface: #292e25;
+  --ink: #d6decd;
+  --muted: #9ba791;
+  --numbers: #79866d;
+  --border: #363e2f;
+  --hover: #343e2c;
+  --accent: #b3c997;
+  --accent-text: #202818;
+  --selection: #435536;
+  --shadow: 0 12px 35px #0004;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  color: var(--ink);
+  background: var(--paper);
+  font: 13px "Segoe UI", system-ui, sans-serif;
+}
+
+button, input { font: inherit; }
+button { color: inherit; cursor: pointer; }
+button:disabled { opacity: .4; cursor: default; }
+button { -webkit-tap-highlight-color: transparent; }
+
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+[hidden] { display: none !important; }
+
+.app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  min-height: 62px;
+  padding: 12px 23px;
+  background: var(--header);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -.6px;
+}
+
+.brand svg {
+  width: 23px;
+  height: 23px;
+  color: var(--accent);
+}
+
+svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.title-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+}
+
+.document-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+#filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#dirtyMark {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 33px;
+  height: 33px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.icon-button:hover {
+  color: var(--ink);
+  background: var(--hover);
+}
+
+.icon-button[aria-pressed="true"] {
+  color: var(--accent);
+  background: var(--hover);
+}
+
+.save-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 33px;
+  padding: 7px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.save-button:hover { filter: brightness(1.07); }
+.save-button svg { width: 15px; height: 15px; }
+
+.menubar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 39px;
+  padding: 4px 13px;
+  border-bottom: 1px solid var(--border);
+  background: var(--toolbar);
+}
+
+.menu { position: relative; }
+
+.menu-trigger {
+  padding: 6px 11px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  font-size: 12px;
+}
+
+.menu-trigger:hover,
+.menu-trigger[aria-expanded="true"] {
+  background: var(--hover);
+}
+
+.menu-panel {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 0;
+  z-index: 30;
+  width: 255px;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.menu-panel button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 34px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  text-align: left;
+  font-size: 12px;
+}
+
+.menu-panel button:hover:not(:disabled) { background: var(--hover); }
+.menu-panel small { color: var(--muted); white-space: nowrap; }
+.separator { height: 1px; margin: 5px; background: var(--border); }
+.menu-spacer { flex: 1; }
+
+.font-caption {
+  padding: 0 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.find-panel {
+  padding: 12px 23px;
+  background: var(--toolbar);
+  border-bottom: 1px solid var(--border);
+}
+
+.find-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.find-row + .find-row { margin-top: 8px; }
+
+.field {
+  width: 100%;
+  min-width: 0;
+  min-height: 35px;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.action {
+  flex-shrink: 0;
+  min-height: 35px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+.action:hover { background: var(--hover); }
+
+.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+  border-color: var(--accent);
+}
+
+.primary:hover {
+  background: var(--accent);
+  filter: brightness(1.07);
+}
+
+.find-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.find-options label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+input[type="checkbox"] { accent-color: var(--accent); }
+#findMessage { margin-left: auto; }
+
+.writing-area {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--paper);
+}
+
+.gutter {
+  position: relative;
+  width: 62px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--gutter);
+  border-right: 1px solid var(--border);
+  user-select: none;
+}
+
+.gutter-inner {
+  position: absolute;
+  inset: 0 0 auto;
+  padding-top: var(--padding-top);
+  will-change: transform;
+}
+
+.line-number {
+  position: relative;
+  height: var(--editor-line);
+  padding-right: 15px;
+  color: var(--numbers);
+  text-align: right;
+  font: 12px/var(--editor-line) "Courier New", monospace;
+}
+
+.line-number.active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.line-number.active::after {
+  position: absolute;
+  top: 9px;
+  right: -1px;
+  width: 2px;
+  height: calc(var(--editor-line) - 18px);
+  background: var(--accent);
+  content: "";
+}
+
+/* A real monospaced face, with natural spacing and no distortion. */
+#editor, #mirror {
+  font-family: "Courier Prime", "Courier New", Courier, monospace;
+  font-size: var(--editor-size);
+  font-weight: 400;
+  font-style: normal;
+  font-synthesis: none;
+  font-variant-ligatures: none;
+  line-height: var(--editor-line);
+  letter-spacing: 0;
+  tab-size: 4;
+  white-space: pre;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+#editor {
+  display: block;
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: var(--padding-top) var(--padding-side);
+  resize: none;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  caret-color: var(--accent);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+#editor.wrap, #mirror.wrap {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+#editor::selection { background: var(--selection); }
+#editor::placeholder { color: var(--muted); opacity: .65; }
+
+#mirror {
+  position: fixed;
+  top: 0;
+  left: -100000px;
+  visibility: hidden;
+  pointer-events: none;
+  padding: 0;
+  border: 0;
+}
+
+.mirror-line { min-height: var(--editor-line); }
+
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  min-height: 34px;
+  padding: 5px 22px;
+  border-top: 1px solid var(--border);
+  background: var(--toolbar);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.status-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+}
+
+.zoom {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.zoom button {
+  width: 23px;
+  height: 23px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+}
+
+.zoom button:hover { background: var(--hover); }
+#zoomLabel { min-width: 37px; text-align: center; }
+
+dialog {
+  width: min(430px, calc(100vw - 28px));
+  padding: 25px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+dialog::backdrop { background: #17201066; }
+dialog h2 { margin: 0 0 13px; font-size: 19px; font-weight: 600; }
+dialog p { color: var(--muted); line-height: 1.65; }
+dialog label { display: block; margin: 18px 0 8px; }
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 23px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 51px;
+  left: 50%;
+  z-index: 100;
+  max-width: calc(100vw - 30px);
+  padding: 11px 17px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+@media (max-width: 650px) {
+  :root {
+    --padding-top: 20px;
+    --padding-side: 15px;
+  }
+
+  .titlebar { min-height: 57px; gap: 11px; padding: 10px 13px; }
+  .brand { gap: 7px; }
+  .brand-name { font-size: 15px; }
+  .brand svg { width: 20px; }
+  .title-actions { gap: 3px; }
+  .menubar { padding: 4px 6px; }
+  .font-caption, .desktop-only { display: none; }
+  .gutter { width: 46px; }
+  .line-number { padding-right: 11px; }
+  .statusbar { gap: 10px; padding: 5px 10px; font-size: 10px; }
+  .status-right { gap: 8px; }
+  .find-panel { padding: 10px; }
+  .find-row { flex-wrap: wrap; }
+  .find-row .field { flex: 1 1 140px; }
+  .menu-panel { width: 225px; }
+}
+
+@media (max-width: 380px) {
+  .brand svg, .save-button span, #wordCount { display: none; }
+  .save-button { padding: 7px 10px; }
+}
+
+@media print {
+  body { height: auto; overflow: visible; background: white; }
+  .app, #mirror, dialog, .toast { display: none !important; }
+
+  #printContent {
+    display: block !important;
+    margin: 0;
+    color: black;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font: 12pt/1.6 "Courier Prime", "Courier New", monospace;
+  }
+}
+</style>
+</head>
+
+<body>
+<main class="app">
+  <header class="titlebar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 3h12v18H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z"/>
+        <path d="M7 3v18M10 8h5M10 12h5"/>
+      </svg>
+      <span class="brand-name">notepad.</span>
+    </div>
+
+    <div class="title-divider"></div>
+
+    <div class="document-title">
+      <span id="filename">Untitled</span>
+      <span id="dirtyMark" aria-label="Unsaved changes" hidden></span>
+    </div>
+
+    <div class="title-actions">
+      <button
+        class="icon-button desktop-only"
+        data-command="open"
+        title="Open file"
+        aria-label="Open file">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 8V5h7l2 3h9l-3 12H3Z"/>
+        </svg>
+      </button>
+
+      <button
+        id="soundButton"
+        class="icon-button"
+        title="Enable typewriter sound"
+        aria-label="Enable typewriter sound"
+        aria-pressed="false">
+        <svg viewBox="0 0 24 24">
+          <path d="M11 4 6 8H3v8h3l5 4ZM15 9a5 5 0 0 1 0 6M18 6a9 9 0 0 1 0 12"/>
+        </svg>
+      </button>
+
+      <button
+        id="themeButton"
+        class="icon-button"
+        title="Switch theme"
+        aria-label="Switch theme">
+        <svg id="themeIcon" viewBox="0 0 24 24"></svg>
+      </button>
+
+      <button class="save-button" data-command="save" title="Save · Ctrl+S">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 3h13l4 4v14H3V3ZM7 3v6h9V3M7 21v-8h10v8"/>
+        </svg>
+        <span>Save</span>
+      </button>
+    </div>
+  </header>
+
+  <nav class="menubar" aria-label="Notepad menu">
+    <div class="menu">
+      <button class="menu-trigger" aria-expanded="false" aria-controls="fileMenu">File</button>
+      <div id="fileMenu" class="menu-panel" hidden>
+        <button data-command="new">New document <small>Ctrl+Alt+N</small></button>
+        <button data-command="open">Open… <small>Ctrl+O</small></button>
+        <button data-command="save">Save <small>Ctrl+S</small></button>
+        <button data-command="saveAs">Save as… <small>Ctrl+Shift+S</small></button>
+        <div class="separator"></div>
+        <button data-command="print">Print… <small>Ctrl+P</small></button>
+      </div>
+    </div>
+
+    <div class="menu">
+      <button class="menu-trigger" aria-expanded="false" aria-controls="editMenu">Edit</button>
+      <div id="editMenu" class="menu-panel" hidden>
+        <button data-command="undo">Undo <small>Ctrl+Z</small></button>
+        <button data-command="redo">Redo <small>Ctrl+Y</small></button>
+        <div class="separator"></div>
+        <button data-command="cut">Cut <small>Ctrl+X</small></button>
+        <button data-command="copy">Copy <small>Ctrl+C</small></button>
+        <button data-command="paste">Paste <small>Ctrl+V</small></button>
+        <button data-command="delete">Delete selection <small>Del</small></button>
+        <div class="separator"></div>
+        <button data-command="find">Find… <small>Ctrl+F</small></button>
+        <button data-command="replace">Replace… <small>Ctrl+H</small></button>
+        <button data-command="goTo">Go to line… <small>Ctrl+G</small></button>
+        <button data-command="selectAll">Select all <small>Ctrl+A</small></button>
+        <button data-command="date">Time / Date <small>F5</small></button>
+      </div>
+    </div>
+
+    <div class="menu">
+      <button class="menu-trigger" aria-expanded="false" aria-controls="viewMenu">View</button>
+      <div id="viewMenu" class="menu-panel" hidden>
+        <button data-command="lines">Line numbers <small id="linesCheck">✓</small></button>
+        <button data-command="wrap">Word wrap <small id="wrapCheck"></small></button>
+        <button data-command="status">Status bar <small id="statusCheck">✓</small></button>
+        <button data-command="sound">Typewriter sound <small id="soundCheck"></small></button>
+        <div class="separator"></div>
+        <button data-command="zoomIn">Zoom in <small>Ctrl +</small></button>
+        <button data-command="zoomOut">Zoom out <small>Ctrl −</small></button>
+        <button data-command="zoomReset">Reset zoom <small>Ctrl+0</small></button>
+        <div class="separator"></div>
+        <button data-command="theme">Switch theme <small>Light / Dark</small></button>
+      </div>
+    </div>
+
+    <span class="menu-spacer"></span>
+    <span id="fontCaption" class="font-caption">Courier Prime · Typewriter</span>
+
+    <button class="icon-button" data-command="find" title="Find text" aria-label="Find text">
+      <svg viewBox="0 0 24 24">
+        <circle cx="10.5" cy="10.5" r="6.5"/>
+        <path d="m16 16 5 5"/>
+      </svg>
+    </button>
+  </nav>
+
+  <section id="findPanel" class="find-panel" aria-label="Find and replace" hidden>
+    <div class="find-row">
+      <input id="findInput" class="field" placeholder="Find text…" aria-label="Find text">
+      <button id="findPrevious" class="action" aria-label="Previous match">↑</button>
+      <button id="findNext" class="action" aria-label="Next match">↓</button>
+      <button id="closeFind" class="action" aria-label="Close search">✕</button>
+    </div>
+
+    <div id="replaceRow" class="find-row" hidden>
+      <input id="replaceInput" class="field" placeholder="Replace with…" aria-label="Replacement text">
+      <button id="replaceOne" class="action">Replace</button>
+      <button id="replaceAll" class="action">Replace all</button>
+    </div>
+
+    <div class="find-options">
+      <label><input id="matchCase" type="checkbox"> Match case</label>
+      <label><input id="wholeWord" type="checkbox"> Whole word</label>
+      <span id="findMessage" role="status"></span>
+    </div>
+  </section>
+
+  <section class="writing-area" aria-label="Writing area">
+    <div id="gutter" class="gutter" aria-hidden="true">
+      <div id="gutterInner" class="gutter-inner"></div>
+    </div>
+
+    <textarea
+      id="editor"
+      aria-label="Document text"
+      placeholder="Start writing..."
+      wrap="off"
+      spellcheck="false"
+      autocorrect="off"
+      autocapitalize="off"
+      autocomplete="off"
+    ></textarea>
+  </section>
+
+  <footer id="statusbar" class="statusbar">
+    <span id="cursorStatus">Ln 1, Col 1</span>
+    <span id="lineCount">1 line</span>
+    <span id="wordCount">0 words</span>
+    <span id="charCount" class="desktop-only">0 characters</span>
+
+    <div class="status-right">
+      <span id="draftStatus" class="desktop-only" role="status">Local draft</span>
+      <div class="zoom">
+        <button data-command="zoomOut" aria-label="Zoom out">−</button>
+        <span id="zoomLabel">100%</span>
+        <button data-command="zoomIn" aria-label="Zoom in">+</button>
+      </div>
+      <span class="desktop-only">UTF-8</span>
+    </div>
+  </footer>
+</main>
+
+<div id="mirror" aria-hidden="true"></div>
+<input id="fileInput" type="file" accept="text/*,.txt,.md,.json,.csv,.log,.html,.css,.js" hidden>
+<div id="toast" class="toast" role="status" hidden></div>
+<pre id="printContent" hidden></pre>
+
+<dialog id="saveDialog">
+  <form id="saveForm">
+    <h2>Save document</h2>
+    <p>Your browser will download a UTF-8 text file.</p>
+    <label for="saveName">File name</label>
+    <input id="saveName" class="field" required>
+    <div class="dialog-actions">
+      <button id="cancelSave" class="action" type="button">Cancel</button>
+      <button class="action primary" type="submit">Download</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="unsavedDialog">
+  <h2>Save changes?</h2>
+  <p id="unsavedMessage"></p>
+  <div class="dialog-actions">
+    <button id="cancelPending" class="action">Cancel</button>
+    <button id="discardPending" class="action">Don't save</button>
+    <button id="savePending" class="action primary">Save</button>
+  </div>
+</dialog>
+
+<dialog id="goToDialog">
+  <form id="goToForm">
+    <h2>Go to line</h2>
+    <label for="lineInput">Line number</label>
+    <input id="lineInput" class="field" type="number" min="1" step="1" required>
+    <div class="dialog-actions">
+      <button id="cancelGoTo" class="action" type="button">Cancel</button>
+      <button class="action primary" type="submit">Go to</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+const editor = $("editor");
+const mirror = $("mirror");
+const STORAGE_KEY = "typewriter-notepad-v4";
+
+let filename = "Untitled";
+let savedText = "";
+let fileHandle = null;
+let lineEnding = "\r\n";
+
+let theme = "light";
+let zoom = 100;
+let wordWrap = false;
+let showLines = true;
+let showStatus = true;
+let soundEnabled = false;
+
+let undoStack = [];
+let redoStack = [];
+let previous = { text: "", start: 0, end: 0 };
+let composing = false;
+let busy = false;
+let revision = 0;
+let pendingAction = null;
+let saveContinuation = null;
+
+let draftTimer;
+let toastTimer;
+let layoutFrame;
+let activeLine = null;
+let lineOffsets = [0];
+
+let audioContext = null;
+let noiseBuffer = null;
+
+const snapshot = () => ({
+  text: editor.value,
+  start: editor.selectionStart,
+  end: editor.selectionEnd
+});
+
+const dirty = () => editor.value !== savedText;
+
+function notify(message) {
+  clearTimeout(toastTimer);
+  $("toast").textContent = message;
+  $("toast").hidden = false;
+  toastTimer = setTimeout(() => $("toast").hidden = true, 3500);
+}
+
+function persist() {
+  clearTimeout(draftTimer);
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      text: editor.value,
+      savedText,
+      filename,
+      lineEnding,
+      theme,
+      zoom,
+      wordWrap,
+      showLines,
+      showStatus,
+      soundEnabled
+    }));
+
+    $("draftStatus").textContent = "Draft saved locally";
+  } catch {
+    $("draftStatus").textContent = "Local draft unavailable";
+  }
+}
+
+function queuePersist() {
+  $("draftStatus").textContent = "Saving draft…";
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(persist, 400);
+}
+
+function updateCursor() {
+  const before = editor.value.slice(0, editor.selectionStart);
+  const line = before.split("\n").length;
+  const column = before.length - before.lastIndexOf("\n");
+
+  $("cursorStatus").textContent = `Ln ${line}, Col ${column}`;
+
+  activeLine?.classList.remove("active");
+  activeLine = $("gutterInner").children[line - 1];
+  activeLine?.classList.add("active");
+
+  if (!composing && previous.text === editor.value) {
+    previous.start = editor.selectionStart;
+    previous.end = editor.selectionEnd;
+  }
+}
+
+function updateStats() {
+  const text = editor.value;
+  const lines = text.split("\n").length;
+  const words = text.trim() ? text.trim().split(/\s+/u).length : 0;
+
+  $("filename").textContent = filename;
+  $("dirtyMark").hidden = !dirty();
+  $("lineCount").textContent = `${lines.toLocaleString()} ${lines === 1 ? "line" : "lines"}`;
+  $("wordCount").textContent = `${words.toLocaleString()} ${words === 1 ? "word" : "words"}`;
+  $("charCount").textContent = `${text.length.toLocaleString()} characters`;
+
+  document.title = `${dirty() ? "● " : ""}${filename} — Notepad`;
+  updateCursor();
+}
+
+function syncGutter() {
+  $("gutterInner").style.transform = `translateY(${-editor.scrollTop}px)`;
+}
+
+function configureMirror() {
+  const style = getComputedStyle(editor);
+
+  mirror.classList.toggle("wrap", wordWrap);
+  mirror.style.width = wordWrap
+    ? `${Math.max(
+        1,
+        editor.clientWidth -
+        parseFloat(style.paddingLeft) -
+        parseFloat(style.paddingRight)
+      )}px`
+    : "max-content";
+
+  return style;
+}
+
+/* Wrapped rows belong to the same logical line. */
+function rebuildLines() {
+  const lines = editor.value.split("\n");
+  const minWidth = window.innerWidth <= 650 ? 46 : 62;
+
+  $("gutter").style.width =
+    `${Math.max(minWidth, String(lines.length).length * 8 + 27)}px`;
+
+  const style = configureMirror();
+  const height = parseFloat(style.lineHeight);
+  let heights = new Array(lines.length).fill(height);
+
+  if (wordWrap) {
+    const fragment = document.createDocumentFragment();
+
+    for (const line of lines) {
+      const row = document.createElement("div");
+      row.className = "mirror-line";
+      row.textContent = line || "\u200b";
+      fragment.appendChild(row);
+    }
+
+    mirror.replaceChildren(fragment);
+    heights = Array.from(
+      mirror.children,
+      row => row.getBoundingClientRect().height
+    );
+    mirror.replaceChildren();
+  }
+
+  lineOffsets = [];
+  let offset = 0;
+  const fragment = document.createDocumentFragment();
+
+  lines.forEach((_, index) => {
+    lineOffsets.push(offset);
+    offset += heights[index];
+
+    const number = document.createElement("div");
+    number.className = "line-number";
+    number.textContent = index + 1;
+    number.style.height = `${heights[index]}px`;
+    fragment.appendChild(number);
+  });
+
+  $("gutterInner").replaceChildren(fragment);
+  updateCursor();
+  syncGutter();
+}
+
+function scheduleLayout() {
+  cancelAnimationFrame(layoutFrame);
+  layoutFrame = requestAnimationFrame(rebuildLines);
+}
+
+function revealPosition(position) {
+  const style = configureMirror();
+  const before = editor.value.slice(0, position);
+  const lineIndex = before.split("\n").length - 1;
+  const start = before.lastIndexOf("\n") + 1;
+  const nextBreak = editor.value.indexOf("\n", position);
+  const end = nextBreak === -1 ? editor.value.length : nextBreak;
+
+  const marker = document.createElement("span");
+  marker.textContent = "\u200b";
+
+  mirror.replaceChildren(
+    document.createTextNode(editor.value.slice(start, position)),
+    marker,
+    document.createTextNode(editor.value.slice(position, end))
+  );
+
+  const base = mirror.getBoundingClientRect();
+  const rect = marker.getBoundingClientRect();
+
+  const top = parseFloat(style.paddingTop) +
+    (lineOffsets[lineIndex] || 0) +
+    rect.top - base.top;
+
+  const height = parseFloat(style.lineHeight);
+
+  if (
+    top < editor.scrollTop ||
+    top + height > editor.scrollTop + editor.clientHeight
+  ) {
+    editor.scrollTop = Math.max(0, top - editor.clientHeight / 2);
+  }
+
+  if (!wordWrap) {
+    const left = rect.left - base.left + parseFloat(style.paddingLeft);
+
+    if (
+      left < editor.scrollLeft ||
+      left > editor.scrollLeft + editor.clientWidth - 35
+    ) {
+      editor.scrollLeft = Math.max(0, left - editor.clientWidth / 2);
+    }
+  }
+
+  mirror.replaceChildren();
+  syncGutter();
+}
+
+function updateSoundButton() {
+  $("soundButton").setAttribute("aria-pressed", String(soundEnabled));
+  $("soundCheck").textContent = soundEnabled ? "✓" : "";
+
+  const label = `${soundEnabled ? "Disable" : "Enable"} typewriter sound`;
+  $("soundButton").title = label;
+  $("soundButton").setAttribute("aria-label", label);
+}
+
+function applyPreferences() {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.style.setProperty(
+    "--editor-size", `${20 * zoom / 100}px`
+  );
+  document.documentElement.style.setProperty(
+    "--editor-line", `${34 * zoom / 100}px`
+  );
+
+  editor.classList.toggle("wrap", wordWrap);
+  editor.wrap = wordWrap ? "soft" : "off";
+
+  $("gutter").hidden = !showLines;
+  $("statusbar").hidden = !showStatus;
+  $("linesCheck").textContent = showLines ? "✓" : "";
+  $("wrapCheck").textContent = wordWrap ? "✓" : "";
+  $("statusCheck").textContent = showStatus ? "✓" : "";
+  $("zoomLabel").textContent = `${zoom}%`;
+
+  $("themeIcon").innerHTML = theme === "light"
+    ? '<path d="M20.5 13.5A9 9 0 0 1 10.5 3 9 9 0 1 0 20.5 13.5Z"/>'
+    : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/>';
+
+  const label = `Switch to ${theme === "light" ? "dark" : "light"} theme`;
+  $("themeButton").title = label;
+  $("themeButton").setAttribute("aria-label", label);
+
+  updateSoundButton();
+  scheduleLayout();
+}
+
+function changeTheme() {
+  theme = theme === "light" ? "dark" : "light";
+  applyPreferences();
+  persist();
+}
+
+function changeZoom(amount, reset = false) {
+  zoom = reset ? 100 : Math.max(50, Math.min(250, zoom + amount));
+  applyPreferences();
+  persist();
+}
+
+/* Optional synthesized mechanical key clicks.
+   Disabled by default; no audio files or typing delays. */
+async function prepareAudio() {
+  const AudioClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioClass) throw new Error("Audio unavailable");
+
+  if (!audioContext) {
+    audioContext = new AudioClass();
+    noiseBuffer = audioContext.createBuffer(
+      1,
+      Math.ceil(audioContext.sampleRate * .3999),
+      audioContext.sampleRate
+    );
+
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+  }
+
+  if (audioContext.state === "suspended") {
+    await audioContext.resume();
+  }
+}
+
+async function toggleSound() {
+  if (soundEnabled) {
+    soundEnabled = false;
+  } else {
+    try {
+      await prepareAudio();
+      soundEnabled = true;
+    } catch {
+      notify("Typewriter sound is unavailable in this browser.");
+      return;
+    }
+  }
+
+  updateSoundButton();
+  persist();
+}
+
+function keySound(returnKey = false) {
+  if (
+    !soundEnabled ||
+    !audioContext ||
+    audioContext.state !== "running"
+  ) return;
+
+  const now = audioContext.currentTime;
+
+  const source = audioContext.createBufferSource();
+  const filter = audioContext.createBiquadFilter();
+  const gain = audioContext.createGain();
+
+  source.buffer = noiseBuffer;
+  filter.type = "bandpass";
+  filter.frequency.value = returnKey ? 900 : 1700 + Math.random() * 650;
+  filter.Q.value = .7;
+
+  gain.gain.setValueAtTime(returnKey ? .09 : .055, now);
+  gain.gain.exponentialRampToValueAtTime(.001, now + .055);
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioContext.destination);
+  source.start(now);
+  source.stop(now + .065);
+
+  source.onended = () => {
+    source.disconnect();
+    filter.disconnect();
+    gain.disconnect();
+  };
+
+  if (returnKey) {
+    const bell = audioContext.createOscillator();
+    const bellGain = audioContext.createGain();
+
+    bell.type = "sine";
+    bell.frequency.value = 1550;
+    bellGain.gain.setValueAtTime(.017, now);
+    bellGain.gain.exponentialRampToValueAtTime(.0001, now + .22);
+
+    bell.connect(bellGain);
+    bellGain.connect(audioContext.destination);
+    bell.start(now);
+    bell.stop(now + .23);
+
+    bell.onended = () => {
+      bell.disconnect();
+      bellGain.disconnect();
+    };
+  }
+}
+
+/* Bound undo memory as well as entry count. */
+function trimHistory(stack) {
+  let total = 0;
+  let keepFrom = stack.length;
+
+  for (let i = stack.length - 1; i >= 0; i--) {
+    total += stack[i].text.length;
+
+    if (stack.length - i > 100 || total > 8_000_000) break;
+    keepFrom = i;
+  }
+
+  if (keepFrom > 0) stack.splice(0, keepFrom);
+}
+
+function recordChange() {
+  if (previous.text !== editor.value) {
+    undoStack.push(previous);
+    trimHistory(undoStack);
+    redoStack = [];
+    revision++;
+  }
+
+  previous = snapshot();
+  updateStats();
+  scheduleLayout();
+  queuePersist();
+
+  if (!$("findPanel").hidden) updateFindCount();
+}
+
+function restore(state) {
+  editor.value = state.text;
+  revision++;
+  editor.focus();
+  editor.setSelectionRange(state.start, state.end);
+  previous = snapshot();
+
+  updateStats();
+  rebuildLines();
+  revealPosition(state.start);
+  queuePersist();
+  updateFindCount();
+}
+
+function undo() {
+  if (!undoStack.length) return;
+  redoStack.push(snapshot());
+  trimHistory(redoStack);
+  restore(undoStack.pop());
+}
+
+function redo() {
+  if (!redoStack.length) return;
+  undoStack.push(snapshot());
+  trimHistory(undoStack);
+  restore(redoStack.pop());
+}
+
+function insert(text, start = editor.selectionStart, end = editor.selectionEnd) {
+  if (busy) return;
+
+  previous = snapshot();
+  editor.focus();
+  editor.setRangeText(text, start, end, "end");
+  recordChange();
+}
+
+function setDocument(text, name, handle = null, ending = "\r\n") {
+  editor.value = text.replace(/\r\n?/g, "\n");
+  filename = name;
+  savedText = editor.value;
+  fileHandle = handle;
+  lineEnding = ending;
+  revision++;
+
+  undoStack = [];
+  redoStack = [];
+
+  editor.setSelectionRange(0, 0);
+  editor.scrollTop = 0;
+  editor.scrollLeft = 0;
+  previous = snapshot();
+
+  updateStats();
+  scheduleLayout();
+  updateFindCount();
+  persist();
+  editor.focus();
+}
+
+function closeMenus() {
+  document.querySelectorAll(".menu-trigger").forEach(button => {
+    button.setAttribute("aria-expanded", "false");
+    $(button.getAttribute("aria-controls")).hidden = true;
+  });
+}
+
+function guard(action) {
+  if (busy) return;
+  closeMenus();
+
+  if (!dirty()) return action();
+
+  pendingAction = action;
+  $("unsavedMessage").textContent =
+    `Save your changes to “${filename}” before continuing?`;
+
+  $("unsavedDialog").showModal();
+}
+
+async function loadFile(file, handle = null) {
+  if (file.size > 5 * 1024 * 1024) {
+    notify("Please open a text file smaller than 5 MB.");
+    return;
+  }
+
+  busy = true;
+  editor.readOnly = true;
+
+  try {
+    const text = await file.text();
+    const ending = text.includes("\r\n")
+      ? "\r\n"
+      : text.includes("\n") ? "\n" : "\r\n";
+
+    setDocument(text, file.name, handle, ending);
+  } catch {
+    notify("The file could not be opened.");
+  } finally {
+    busy = false;
+    editor.readOnly = false;
+  }
+}
+
+async function openFile() {
+  if ("showOpenFilePicker" in window && window.isSecureContext) {
+    try {
+      const [handle] = await window.showOpenFilePicker({ multiple: false });
+      await loadFile(await handle.getFile(), handle);
+    } catch (error) {
+      if (error.name !== "AbortError") notify("Unable to open the file.");
+    }
+  } else {
+    $("fileInput").value = "";
+    $("fileInput").click();
+  }
+}
+
+async function saveFile(saveAs = false, continuation = null) {
+  if (busy) return;
+
+  if (!("showSaveFilePicker" in window) || !window.isSecureContext) {
+    saveContinuation = continuation;
+    $("saveName").value = filename === "Untitled" ? "Untitled.txt" : filename;
+    $("saveDialog").showModal();
+    $("saveName").select();
+    return;
+  }
+
+  const text = editor.value;
+  let successful = false;
+
+  busy = true;
+  editor.readOnly = true;
+
+  try {
+    let handle = fileHandle;
+
+    if (!handle || saveAs) {
+      handle = await window.showSaveFilePicker({
+        suggestedName: filename === "Untitled" ? "Untitled.txt" : filename
+      });
+    }
+
+    const writable = await handle.createWritable();
+    await writable.write(text.replace(/\n/g, lineEnding));
+    await writable.close();
+
+    fileHandle = handle;
+    filename = handle.name;
+    savedText = text;
+    successful = true;
+
+    updateStats();
+    persist();
+    notify("Document saved.");
+  } catch (error) {
+    if (error.name !== "AbortError") {
+      notify("Save failed. Your text remains in the editor.");
+    }
+  } finally {
+    busy = false;
+    editor.readOnly = false;
+  }
+
+  if (successful && continuation) continuation();
+}
+
+function download(name) {
+  const blob = new Blob([editor.value.replace(/\n/g, lineEnding)], {
+    type: "text/plain;charset=utf-8"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function matches() {
+  const query = $("findInput").value;
+  if (!query) return [];
+
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(
+    escaped,
+    $("matchCase").checked ? "gu" : "giu"
+  );
+
+  const wordCharacter = /[\p{L}\p{N}_]/u;
+  const text = editor.value;
+  const result = [];
+
+  for (const match of text.matchAll(regex)) {
+    const start = match.index;
+    const end = start + match[0].length;
+
+    if ($("wholeWord").checked) {
+      const before = Array.from(
+        text.slice(Math.max(0, start - 2), start)
+      ).pop() || "";
+
+      const after = Array.from(text.slice(end, end + 2))[0] || "";
+
+      if (wordCharacter.test(before) || wordCharacter.test(after)) continue;
+    }
+
+    result.push({ start, end });
+  }
+
+  return result;
+}
+
+function updateFindCount() {
+  const count = matches().length;
+  $("findMessage").textContent = $("findInput").value
+    ? `${count} match${count === 1 ? "" : "es"}`
+    : "";
+}
+
+function openFind(replace = false) {
+  const selection = editor.value.slice(
+    editor.selectionStart,
+    editor.selectionEnd
+  );
+
+  if (selection && !selection.includes("\n")) {
+    $("findInput").value = selection;
+  }
+
+  $("findPanel").hidden = false;
+  $("replaceRow").hidden = !replace;
+  $("findInput").focus();
+  $("findInput").select();
+
+  updateFindCount();
+  scheduleLayout();
+}
+
+function find(backward = false) {
+  const found = matches();
+  if (!found.length) return updateFindCount();
+
+  const match = backward
+    ? [...found].reverse().find(item => item.start < editor.selectionStart) ||
+      found[found.length - 1]
+    : found.find(item => item.start >= editor.selectionEnd) || found[0];
+
+  editor.focus();
+  editor.setSelectionRange(match.start, match.end);
+
+  rebuildLines();
+  revealPosition(match.start);
+  updateCursor();
+
+  $("findMessage").textContent =
+    `${found.indexOf(match) + 1} of ${found.length}`;
+}
+
+function replaceOne() {
+  const match = matches().find(item =>
+    item.start === editor.selectionStart &&
+    item.end === editor.selectionEnd
+  );
+
+  if (match) insert($("replaceInput").value, match.start, match.end);
+  find();
+}
+
+function replaceAll() {
+  const found = matches();
+  if (!found.length) return;
+
+  const text = editor.value;
+  const replacement = $("replaceInput").value;
+  const parts = [];
+  let position = 0;
+
+  for (const match of found) {
+    parts.push(text.slice(position, match.start), replacement);
+    position = match.end;
+  }
+
+  parts.push(text.slice(position));
+  insert(parts.join(""), 0, text.length);
+
+  $("findMessage").textContent = `${found.length} replaced`;
+}
+
+async function copy(cut = false) {
+  const state = snapshot();
+  const version = revision;
+  const text = state.text.slice(state.start, state.end);
+
+  if (!text) return;
+
+  try {
+    await navigator.clipboard.writeText(text);
+
+    if (cut && revision === version && !busy) {
+      insert("", state.start, state.end);
+    }
+  } catch {
+    editor.focus();
+    notify(
+      `Use ${navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}+${cut ? "X" : "C"}.`
+    );
+  }
+}
+
+async function paste() {
+  const state = snapshot();
+  const version = revision;
+
+  try {
+    const text = await navigator.clipboard.readText();
+
+    if (revision !== version || busy) {
+      notify("Document changed. Paste again at your current cursor.");
+      return;
+    }
+
+    insert(text.replace(/\r\n?/g, "\n"), state.start, state.end);
+  } catch {
+    editor.focus();
+    notify(
+      `Use ${navigator.platform.includes("Mac") ? "⌘" : "Ctrl"}+V to paste.`
+    );
+  }
+}
+
+const commands = {
+  new: () => guard(() => setDocument("", "Untitled")),
+  open: () => guard(openFile),
+  save: () => saveFile(),
+  saveAs: () => saveFile(true),
+
+  print: () => {
+    $("printContent").textContent = editor.value;
+    window.print();
+  },
+
+  undo,
+  redo,
+  cut: () => copy(true),
+  copy: () => copy(),
+  paste,
+
+  delete: () => {
+    if (editor.selectionStart !== editor.selectionEnd) insert("");
+  },
+
+  find: () => openFind(),
+  replace: () => openFind(true),
+
+  selectAll: () => {
+    editor.focus();
+    editor.select();
+    updateCursor();
+  },
+
+  date: () => insert(
+    new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit"
+    }) + " " + new Date().toLocaleDateString()
+  ),
+
+  goTo: () => {
+    $("lineInput").max = editor.value.split("\n").length;
+    $("lineInput").value =
+      editor.value.slice(0, editor.selectionStart).split("\n").length;
+
+    $("goToDialog").showModal();
+    $("lineInput").select();
+  },
+
+  lines: () => {
+    showLines = !showLines;
+    applyPreferences();
+    persist();
+  },
+
+  wrap: () => {
+    wordWrap = !wordWrap;
+    applyPreferences();
+    persist();
+  },
+
+  status: () => {
+    showStatus = !showStatus;
+    applyPreferences();
+    persist();
+  },
+
+  sound: toggleSound,
+  zoomIn: () => changeZoom(10),
+  zoomOut: () => changeZoom(-10),
+  zoomReset: () => changeZoom(0, true),
+  theme: changeTheme
+};
+
+document.querySelectorAll("[data-command]").forEach(button => {
+  button.addEventListener("click", () => {
+    if (busy) return;
+    closeMenus();
+    commands[button.dataset.command]();
+  });
+});
+
+document.querySelectorAll(".menu-trigger").forEach(button => {
+  button.addEventListener("click", () => {
+    const wasOpen = button.getAttribute("aria-expanded") === "true";
+    closeMenus();
+
+    if (!wasOpen) {
+      button.setAttribute("aria-expanded", "true");
+      $(button.getAttribute("aria-controls")).hidden = false;
+
+      document.querySelector('[data-command="undo"]').disabled =
+        !undoStack.length;
+
+      document.querySelector('[data-command="redo"]').disabled =
+        !redoStack.length;
+    }
+  });
+
+  button.addEventListener("keydown", event => {
+    if (event.key !== "ArrowDown") return;
+
+    event.preventDefault();
+    if (button.getAttribute("aria-expanded") !== "true") button.click();
+
+    $(button.getAttribute("aria-controls"))
+      .querySelector("button:not(:disabled)")?.focus();
+  });
+});
+
+document.querySelectorAll(".menu-panel").forEach(menu => {
+  menu.addEventListener("keydown", event => {
+    if (!["ArrowDown", "ArrowUp"].includes(event.key)) return;
+    event.preventDefault();
+
+    const buttons = [...menu.querySelectorAll("button:not(:disabled)")];
+    const index = buttons.indexOf(document.activeElement);
+    const step = event.key === "ArrowDown" ? 1 : -1;
+
+    buttons[(index + step + buttons.length) % buttons.length]?.focus();
+  });
+});
+
+document.addEventListener("click", event => {
+  if (!event.target.closest(".menu")) closeMenus();
+});
+
+editor.addEventListener("beforeinput", event => {
+  if (event.inputType === "historyUndo" && event.cancelable) {
+    event.preventDefault();
+    undo();
+    return;
+  }
+
+  if (event.inputType === "historyRedo" && event.cancelable) {
+    event.preventDefault();
+    redo();
+    return;
+  }
+
+  if (!composing) previous = snapshot();
+});
+
+editor.addEventListener("input", event => {
+  if (!composing && !event.isComposing) {
+    recordChange();
+
+    if (
+      event.inputType === "insertText" ||
+      event.inputType === "deleteContentBackward" ||
+      event.inputType === "deleteContentForward"
+    ) {
+      keySound(false);
+    } else if (
+      event.inputType === "insertLineBreak" ||
+      event.inputType === "insertParagraph"
+    ) {
+      keySound(true);
+    }
+  }
+});
+
+editor.addEventListener("compositionstart", () => {
+  previous = snapshot();
+  composing = true;
+});
+
+editor.addEventListener("compositionend", () => {
+  composing = false;
+  recordChange();
+});
+
+editor.addEventListener("scroll", syncGutter, { passive: true });
+
+["click", "keyup", "select"].forEach(type => {
+  editor.addEventListener(type, updateCursor);
+});
+
+editor.addEventListener("pointerdown", () => {
+  if (soundEnabled) prepareAudio().catch(() => {});
+});
+
+editor.addEventListener("keydown", event => {
+  if (soundEnabled) prepareAudio().catch(() => {});
+
+  if (
+    event.key === "Tab" &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !busy
+  ) {
+    event.preventDefault();
+    insert("\t");
+    keySound(false);
+  }
+});
+
+document.addEventListener("keydown", event => {
+  if (
+    event.isComposing ||
+    busy ||
+    document.querySelector("dialog[open]")
+  ) return;
+
+  if (event.key === "Escape") {
+    closeMenus();
+    $("findPanel").hidden = true;
+    editor.focus();
+    scheduleLayout();
+    return;
+  }
+
+  const modifier = event.ctrlKey || event.metaKey;
+  const key = event.key.toLowerCase();
+  const inInput = event.target instanceof HTMLInputElement;
+  let command;
+
+  if (modifier) {
+    if (key === "s") command = event.shiftKey ? "saveAs" : "save";
+    else if (key === "o") command = "open";
+    else if (key === "n" && event.altKey) command = "new";
+    else if (key === "f") command = "find";
+    else if (key === "h") command = "replace";
+    else if (key === "g") command = "goTo";
+    else if (key === "p") command = "print";
+    else if (key === "z" && !inInput) command = event.shiftKey ? "redo" : "undo";
+    else if (key === "y" && !inInput) command = "redo";
+    else if (key === "+" || key === "=") command = "zoomIn";
+    else if (key === "-") command = "zoomOut";
+    else if (key === "0") command = "zoomReset";
+  } else if (event.key === "F5") {
+    command = "date";
+  } else if (event.key === "F3") {
+    event.preventDefault();
+    $("findInput").value ? find(event.shiftKey) : openFind();
+    return;
+  }
+
+  if (command) {
+    event.preventDefault();
+    closeMenus();
+    commands[command]();
+  }
+});
+
+$("themeButton").addEventListener("click", changeTheme);
+$("soundButton").addEventListener("click", toggleSound);
+$("findNext").addEventListener("click", () => find());
+$("findPrevious").addEventListener("click", () => find(true));
+$("replaceOne").addEventListener("click", replaceOne);
+$("replaceAll").addEventListener("click", replaceAll);
+
+$("closeFind").addEventListener("click", () => {
+  $("findPanel").hidden = true;
+  editor.focus();
+  scheduleLayout();
+});
+
+["findInput", "matchCase", "wholeWord"].forEach(id => {
+  $(id).addEventListener("input", updateFindCount);
+});
+
+$("findInput").addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    find(event.shiftKey);
+  }
+});
+
+$("fileInput").addEventListener("change", () => {
+  const file = $("fileInput").files[0];
+  if (file) loadFile(file);
+});
+
+$("saveForm").addEventListener("submit", event => {
+  event.preventDefault();
+
+  let name = $("saveName").value
+    .trim()
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_");
+
+  if (!name) return;
+  if (!name.includes(".")) name += ".txt";
+
+  download(name);
+  filename = name;
+  savedText = editor.value;
+  fileHandle = null;
+
+  $("saveDialog").close();
+  updateStats();
+  persist();
+  notify("File download requested.");
+
+  const continuation = saveContinuation;
+  saveContinuation = null;
+  if (continuation) continuation();
+});
+
+$("cancelSave").addEventListener("click", () => {
+  saveContinuation = null;
+  $("saveDialog").close();
+});
+
+$("saveDialog").addEventListener("cancel", () => {
+  saveContinuation = null;
+});
+
+$("cancelPending").addEventListener("click", () => {
+  pendingAction = null;
+  $("unsavedDialog").close();
+});
+
+$("unsavedDialog").addEventListener("cancel", () => {
+  pendingAction = null;
+});
+
+$("discardPending").addEventListener("click", () => {
+  const action = pendingAction;
+  pendingAction = null;
+  $("unsavedDialog").close();
+  if (action) action();
+});
+
+$("savePending").addEventListener("click", () => {
+  const action = pendingAction;
+  pendingAction = null;
+  $("unsavedDialog").close();
+  saveFile(false, action);
+});
+
+$("cancelGoTo").addEventListener("click", () => {
+  $("goToDialog").close();
+});
+
+$("goToForm").addEventListener("submit", event => {
+  event.preventDefault();
+
+  const number = Number($("lineInput").value);
+  const lines = editor.value.split("\n");
+
+  if (
+    !Number.isInteger(number) ||
+    number < 1 ||
+    number > lines.length
+  ) return;
+
+  let position = 0;
+  for (let i = 0; i < number - 1; i++) position += lines[i].length + 1;
+
+  $("goToDialog").close();
+  editor.focus();
+  editor.setSelectionRange(position, position);
+
+  rebuildLines();
+  revealPosition(position);
+  updateCursor();
+});
+
+editor.addEventListener("dragover", event => {
+  if (event.dataTransfer.types.includes("Files")) event.preventDefault();
+});
+
+editor.addEventListener("drop", event => {
+  if (!event.dataTransfer.files.length) return;
+  event.preventDefault();
+
+  const file = event.dataTransfer.files[0];
+  guard(() => loadFile(file));
+});
+
+window.addEventListener("beforeunload", event => {
+  persist();
+
+  if (dirty()) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
+});
+
+window.addEventListener("pagehide", persist);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") persist();
+});
+
+new ResizeObserver(scheduleLayout).observe(editor);
+
+document.fonts.load('20px "Courier Prime"').then(fonts => {
+  if (!fonts.length) {
+    $("fontCaption").textContent = "Courier New · Offline fallback";
+  }
+  scheduleLayout();
+}).catch(() => {
+  $("fontCaption").textContent = "Courier New · Offline fallback";
+  scheduleLayout();
+});
+
+/* Recover the latest draft from previous versions. */
+try {
+  const current = localStorage.getItem(STORAGE_KEY);
+  const raw = current ||
+    localStorage.getItem("typewriter-notepad-v3") ||
+    localStorage.getItem("typewriter-notepad-v2") ||
+    localStorage.getItem("typewriter-notepad-v1");
+
+  const draft = raw ? JSON.parse(raw) : null;
+
+  if (draft && typeof draft.text === "string") {
+    editor.value = draft.text;
+    filename = typeof draft.filename === "string" ? draft.filename : "Untitled";
+    savedText = typeof draft.savedText === "string" ? draft.savedText : "";
+    lineEnding = draft.lineEnding === "\n" ? "\n" : "\r\n";
+
+    theme = draft.theme === "dark" ? "dark" : "light";
+    wordWrap = draft.wordWrap === true;
+
+    if (current) {
+      showLines = draft.showLines !== false;
+      showStatus = draft.showStatus !== false;
+      soundEnabled = draft.soundEnabled === true;
+
+      zoom = Number.isFinite(draft.zoom)
+        ? Math.max(50, Math.min(250, draft.zoom))
+        : 100;
+    }
+  }
+} catch {
+  $("draftStatus").textContent = "Local draft unavailable";
+}
+
+previous = snapshot();
+applyPreferences();
+updateStats();
+editor.focus();
+
+(() => {
+  "use strict";
+
+  const LEVEL_KEY = "typewriter-notepad-sound-level";
+  const originalKeySound = keySound;
+  const originalUpdateSoundButton = updateSoundButton;
+
+  let soundLevel = "default";
+  let mechanicalBuffer = null;
+  let lastSoundTime = 0;
+
+  try {
+    if (localStorage.getItem(LEVEL_KEY) === "mechanical") {
+      soundLevel = "mechanical";
+    }
+  } catch {}
+
+  const soundMenuButton = document.querySelector(
+    '#viewMenu [data-command="sound"]'
+  );
+
+  const defaultButton = document.createElement("button");
+  defaultButton.type = "button";
+  defaultButton.innerHTML =
+    '<span>Default typing sound</span><small></small>';
+
+  const mechanicalButton = document.createElement("button");
+  mechanicalButton.type = "button";
+  mechanicalButton.innerHTML =
+    '<span>Mechanical typing sound</span><small></small>';
+
+  soundMenuButton.after(defaultButton, mechanicalButton);
+
+  function refreshSoundControls() {
+    originalUpdateSoundButton();
+
+    defaultButton.querySelector("small").textContent =
+      soundLevel === "default" ? "✓" : "";
+
+    mechanicalButton.querySelector("small").textContent =
+      soundLevel === "mechanical" ? "✓" : "";
+
+    defaultButton.setAttribute(
+      "aria-pressed",
+      String(soundLevel === "default")
+    );
+
+    mechanicalButton.setAttribute(
+      "aria-pressed",
+      String(soundLevel === "mechanical")
+    );
+
+    const levelName = soundLevel === "mechanical"
+      ? "Mechanical"
+      : "Default";
+
+    const action = soundEnabled ? "Disable" : "Enable";
+    const label = `${action} typing sound · ${levelName}`;
+
+    $("soundButton").title = label;
+    $("soundButton").setAttribute("aria-label", label);
+  }
+
+  // Existing sound toggles also refresh the selected level.
+  updateSoundButton = refreshSoundControls;
+
+  async function selectSoundLevel(level) {
+    closeMenus();
+
+    try {
+      await prepareAudio();
+    } catch {
+      notify("Typewriter sound is unavailable in this browser.");
+      return;
+    }
+
+    soundLevel = level;
+    soundEnabled = true;
+
+    try {
+      localStorage.setItem(LEVEL_KEY, soundLevel);
+    } catch {}
+
+    refreshSoundControls();
+    persist();
+
+    // Preview one keystroke when choosing a level.
+    keySound(false);
+    editor.focus();
+  }
+
+  defaultButton.addEventListener("click", () => {
+    selectSoundLevel("default");
+  });
+
+  mechanicalButton.addEventListener("click", () => {
+    selectSoundLevel("mechanical");
+  });
+
+  function getMechanicalBuffer() {
+    if (
+      mechanicalBuffer &&
+      mechanicalBuffer.sampleRate === audioContext.sampleRate
+    ) {
+      return mechanicalBuffer;
+    }
+
+    mechanicalBuffer = audioContext.createBuffer(
+      1,
+      Math.ceil(audioContext.sampleRate * 0.2),
+      audioContext.sampleRate
+    );
+
+    const samples = mechanicalBuffer.getChannelData(0);
+
+    for (let i = 0; i < samples.length; i++) {
+      samples[i] = Math.random() * 2 - 1;
+    }
+
+    return mechanicalBuffer;
+  }
+
+  function noiseHit(output, time, duration, frequency, volume, type) {
+    const source = audioContext.createBufferSource();
+    const filter = audioContext.createBiquadFilter();
+    const envelope = audioContext.createGain();
+
+    source.buffer = getMechanicalBuffer();
+    source.playbackRate.value = 0.96 + Math.random() * 0.08;
+
+    filter.type = type;
+    filter.frequency.value = frequency;
+    filter.Q.value = 0.8;
+
+    envelope.gain.setValueAtTime(0.0001, time);
+    envelope.gain.exponentialRampToValueAtTime(
+      volume,
+      time + 0.0015
+    );
+    envelope.gain.exponentialRampToValueAtTime(
+      0.0001,
+      time + duration
+    );
+
+    source.connect(filter);
+    filter.connect(envelope);
+    envelope.connect(output);
+
+    source.start(time);
+    source.stop(time + duration + 0.01);
+
+    source.onended = () => {
+      source.disconnect();
+      filter.disconnect();
+      envelope.disconnect();
+    };
+  }
+
+  function metalTone(output, time, frequency, volume, duration) {
+    const oscillator = audioContext.createOscillator();
+    const envelope = audioContext.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, time);
+    oscillator.frequency.exponentialRampToValueAtTime(
+      frequency * 0.96,
+      time + duration
+    );
+
+    envelope.gain.setValueAtTime(0.0001, time);
+    envelope.gain.exponentialRampToValueAtTime(
+      volume,
+      time + 0.002
+    );
+    envelope.gain.exponentialRampToValueAtTime(
+      0.0001,
+      time + duration
+    );
+
+    oscillator.connect(envelope);
+    envelope.connect(output);
+
+    oscillator.start(time);
+    oscillator.stop(time + duration + 0.01);
+
+    oscillator.onended = () => {
+      oscillator.disconnect();
+      envelope.disconnect();
+    };
+  }
+
+  function mechanicalKeySound(returnKey) {
+    const now = audioContext.currentTime;
+
+    // Prevent duplicate input events from stacking the same click.
+    if (now - lastSoundTime < 0.012) return;
+    lastSoundTime = now;
+
+    const output = audioContext.createGain();
+    const compressor = audioContext.createDynamicsCompressor();
+
+    output.gain.value = 0.85;
+
+    compressor.threshold.value = -12;
+    compressor.knee.value = 6;
+    compressor.ratio.value = 5;
+    compressor.attack.value = 0.002;
+    compressor.release.value = 0.09;
+
+    output.connect(compressor);
+    compressor.connect(audioContext.destination);
+
+    if (returnKey) {
+      // Carriage return: a heavier strike, short slide, and bell.
+      noiseHit(output, now, 0.07, 900, 0.38, "bandpass");
+      noiseHit(output, now + 0.025, 0.14, 1800, 0.15, "bandpass");
+      noiseHit(output, now + 0.11, 0.045, 650, 0.24, "lowpass");
+
+      metalTone(output, now + 0.015, 1680, 0.075, 0.35);
+      metalTone(output, now + 0.015, 2760, 0.025, 0.2);
+    } else {
+      const variation = 0.94 + Math.random() * 0.12;
+
+      // Strong initial click.
+      noiseHit(
+        output, now, 0.029,
+        2900 * variation, 0.36, "highpass"
+      );
+
+      // Lower mechanical body impact.
+      noiseHit(
+        output, now + 0.003, 0.065,
+        850 * variation, 0.43, "bandpass"
+      );
+
+      // Key release and subtle metal resonance.
+      noiseHit(
+        output, now + 0.035, 0.04,
+        1850 * variation, 0.16, "bandpass"
+      );
+
+      metalTone(
+        output, now, 185 * variation, 0.08, 0.055
+      );
+
+      metalTone(
+        output, now + 0.002, 1380 * variation, 0.022, 0.075
+      );
+    }
+
+    setTimeout(() => {
+      output.disconnect();
+      compressor.disconnect();
+    }, returnKey ? 550 : 250);
+  }
+
+  // Existing typing events automatically use the selected sound.
+  keySound = function(returnKey = false) {
+    if (
+      !soundEnabled ||
+      !audioContext ||
+      audioContext.state !== "running"
+    ) {
+      return;
+    }
+
+    if (soundLevel === "default") {
+      originalKeySound(returnKey);
+    } else {
+      mechanicalKeySound(returnKey);
+    }
+  };
+
+  refreshSoundControls();
+})();
+
+(() => {
+  "use strict";
+
+  if (document.getElementById("fullscreenButton")) return;
+
+  const themeButton = document.getElementById("themeButton");
+  if (!themeButton) return;
+
+  const button = document.createElement("button");
+  button.id = "fullscreenButton";
+  button.type = "button";
+  button.className = "icon-button";
+  button.setAttribute("aria-pressed", "false");
+
+  themeButton.insertAdjacentElement("afterend", button);
+
+  const enterIcon = `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M8 21H3v-5"/>
+    </svg>
+  `;
+
+  const exitIcon = `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 8h5V3M16 3v5h5M21 16h-5v5M8 21v-5H3"/>
+    </svg>
+  `;
+
+  let pending = false;
+
+  function fullscreenElement() {
+    return document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      null;
+  }
+
+  function updateButton() {
+    const active = Boolean(fullscreenElement());
+    const label = active ? "Exit fullscreen" : "Enter fullscreen";
+
+    button.innerHTML = active ? exitIcon : enterIcon;
+    button.title = active ? `${label} · Esc` : label;
+    button.setAttribute("aria-label", label);
+    button.setAttribute("aria-pressed", String(active));
+
+    // Recalculate line numbers after the writing area changes size.
+    if (typeof scheduleLayout === "function") {
+      requestAnimationFrame(scheduleLayout);
+    }
+  }
+
+  async function toggleFullscreen() {
+    if (pending) return;
+
+    const root = document.documentElement;
+    const active = Boolean(fullscreenElement());
+
+    const request = root.requestFullscreen ||
+      root.webkitRequestFullscreen;
+
+    const exit = document.exitFullscreen ||
+      document.webkitExitFullscreen;
+
+    if ((!active && !request) || (active && !exit)) {
+      notify(
+        "This browser does not support page fullscreen. Use its fullscreen option, if available."
+      );
+      return;
+    }
+
+    pending = true;
+    button.disabled = true;
+
+    try {
+      if (active) {
+        await exit.call(document);
+      } else {
+        // Fullscreen the entire app, including menus and dialogs.
+        await request.call(root);
+      }
+    } catch {
+      notify(
+        "The browser blocked fullscreen. Try opening this HTML directly in its own tab."
+      );
+    } finally {
+      pending = false;
+      button.disabled = false;
+      updateButton();
+    }
+  }
+
+  button.addEventListener("click", toggleFullscreen);
+
+  // Keep the icon accurate when fullscreen ends through Esc,
+  // browser controls, or a system action.
+  document.addEventListener("fullscreenchange", updateButton);
+  document.addEventListener("webkitfullscreenchange", updateButton);
+
+  updateButton();
+})();
+</script>
+</body>
+</html>
